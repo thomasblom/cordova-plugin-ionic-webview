@@ -689,17 +689,21 @@ NSTimer *timer;
     NSString* message = [NSString stringWithFormat:@"Failed to load webpage with error: %@", [error localizedDescription]];
     NSLog(@"%@", message);
 
+    // Ignore 999 domain error as things seem to load fine.
+    if( ! [ error.domain isEqualToString: NSURLErrorDomain ] || error.code != -999 ) {
+
     NSURL* errorUrl = vc.errorURL;
-    if (errorUrl) {
-        errorUrl = [NSURL URLWithString:[NSString stringWithFormat:@"?error=%@", [message stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]] relativeToURL:errorUrl];
-        NSLog(@"%@", [errorUrl absoluteString]);
-        [theWebView loadRequest:[NSURLRequest requestWithURL:errorUrl]];
-    }
+        if (errorUrl) {
+            errorUrl = [NSURL URLWithString:[NSString stringWithFormat:@"?error=%@", [message stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]] relativeToURL:errorUrl];
+            NSLog(@"%@", [errorUrl absoluteString]);
+            [theWebView loadRequest:[NSURLRequest requestWithURL:errorUrl]];
+        }
 #ifdef DEBUG
-    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"] message:message preferredStyle:UIAlertControllerStyleAlert];
-    [alertController addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:nil]];
-    [vc presentViewController:alertController animated:YES completion:nil];
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"] message:message preferredStyle:UIAlertControllerStyleAlert];
+        [alertController addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:nil]];
+        [vc presentViewController:alertController animated:YES completion:nil];
 #endif
+    }
 }
 
 - (void)webViewWebContentProcessDidTerminate:(WKWebView *)webView
@@ -761,7 +765,9 @@ NSTimer *timer;
             [scheme isEqualToString:@"mailto"] ||
             [scheme isEqualToString:@"facetime"] ||
             [scheme isEqualToString:@"sms"] ||
-            [scheme isEqualToString:@"maps"]) {
+            [scheme isEqualToString:@"maps"] ||
+            [scheme isEqualToString:@"itms-services"] ||
+            !navigationAction.targetFrame) {
             [[UIApplication sharedApplication] openURL:url];
             decisionHandler(WKNavigationActionPolicyCancel);
         } else {
